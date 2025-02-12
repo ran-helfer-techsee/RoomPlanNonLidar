@@ -61,8 +61,12 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     @IBAction func addRoomCorner(_ sender: UITapGestureRecognizer) {
         let tapLocation = sender.location(in: sceneView)
-        let results = sceneView.hitTest(tapLocation, types: .existingPlaneUsingExtent)
-        
+        guard let query = sceneView.raycastQuery(from: tapLocation, allowing: .existingPlaneGeometry, alignment: .horizontal) else {
+            return
+        }
+
+        let results = sceneView.session.raycast(query)
+
         if let result = results.first {
             let position = SCNVector3Make(result.worldTransform.columns.3.x, result.worldTransform.columns.3.y, result.worldTransform.columns.3.z)
             placeRoomMarker(at: position)
