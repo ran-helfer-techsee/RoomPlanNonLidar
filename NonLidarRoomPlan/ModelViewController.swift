@@ -36,15 +36,54 @@ class ModelViewController: UIViewController {
         // Add a light source
         let lightNode = SCNNode()
         let light = SCNLight()
-        light.type = .omni
+        light.type = .ambient
         lightNode.light = light
         lightNode.position = SCNVector3(x: 0, y: 5, z: 5)
         scene.rootNode.addChildNode(lightNode)
         
-        // Add a camera
+        setupCamera(in: sceneView.scene!)
+        
+        createCloseButton()
+    }
+    
+    
+    // MARK: - Setup Camera
+    // TODO: - set initial position better
+    func setupCamera(in scene: SCNScene) {
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
-        cameraNode.position = SCNVector3(x: 0, y: 2, z: 5)
+        
+        // Set the camera a bit higher and further back
+        cameraNode.position = SCNVector3(x: 0, y: 2.5, z: 5)
+        
+        // Aim the camera toward the center of the scene
+        let targetPosition = SCNVector3(x: 0, y: 1, z: 0) // Adjust if needed
+        cameraNode.look(at: targetPosition)
+        
+        // Set camera properties for better visibility
+        cameraNode.camera?.fieldOfView = 70 // Adjust if needed
+        cameraNode.camera?.automaticallyAdjustsZRange = true
+        
         scene.rootNode.addChildNode(cameraNode)
     }
+
+    
+    // MARK: - Create Close Button
+    func createCloseButton() {
+        let closeButton = UIButton(type: .system)
+        closeButton.setTitle("Close", for: .normal)
+        closeButton.frame = CGRect(x: 20, y: 40, width: 80, height: 40)
+        closeButton.backgroundColor = UIColor.red.withAlphaComponent(0.7)
+        closeButton.setTitleColor(.white, for: .normal)
+        closeButton.layer.cornerRadius = 8
+        closeButton.addTarget(self, action: #selector(closeViewController), for: .touchUpInside)
+        
+        view.addSubview(closeButton)
+    }
+
+    // MARK: - Dismiss ModelViewController
+    @objc func closeViewController() {
+        dismiss(animated: true, completion: nil)
+    }
+
 }
