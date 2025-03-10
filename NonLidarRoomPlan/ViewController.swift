@@ -8,6 +8,7 @@
 import UIKit
 import ARKit
 import SceneKit
+import SwiftUI
 
 class ViewController: UIViewController, ARSCNViewDelegate {
 
@@ -34,6 +35,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         createClearButton()
         
         createShow3DModelButton()
+        
+        createShow3SavedModelsButton()
+
         
         sceneView.play(nil)
     }
@@ -75,7 +79,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     func placeRoomMarker(at position: SCNVector3) {
         // Create a marker (small sphere)
-        let marker = SCNSphere(radius: 0.05)
+        let marker = SCNSphere(radius: 0.03)
         let markerNode = SCNNode(geometry: marker)
         markerNode.position = position
         sceneView.scene.rootNode.addChildNode(markerNode)
@@ -150,25 +154,38 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Add wall to the scene
         sceneView.scene.rootNode.addChildNode(wallNode)
+        
+        let labelNode = createWallLabel(text: String(format: "%.1f", wallLength))
+        
+        labelNode.position = SCNVector3(0, 1.0, 0) // Offset label above the wall
+        wallNode.addChildNode(labelNode)
     }
+
+    func createWallLabel(text: String) -> SCNNode {
+        let textGeometry = SCNText(string: text, extrusionDepth: 0.02) // Make text thinner
+        textGeometry.font = UIFont.systemFont(ofSize: 2.0) // Increase font size
+        textGeometry.firstMaterial?.diffuse.contents = UIColor.white
+
+        let textNode = SCNNode(geometry: textGeometry)
+        textNode.scale = SCNVector3(0.1, 0.1, 0.1) // Increase scale
+
+        // Ensure text faces the camera
+        let billboardConstraint = SCNBillboardConstraint()
+        billboardConstraint.freeAxes = .all
+        textNode.constraints = [billboardConstraint]
+
+        return textNode
+    }
+
     
     // MARK: - Clear All Nodes (Programmatically)
     @objc func clearAllNodes() {
-        
-        //sceneView.stop(nil)
-
         
         guard (roomNodes + markerNodes).isEmpty == false else {
             return
         }
         
-        // Remove all room nodes (walls and markers)
-        for node in roomNodes {
-            node.geometry = nil
-            node.removeFromParentNode()
-        }
-        
-        for node in markerNodes {
+        for node in (roomNodes + markerNodes) {
             node.geometry = nil
             node.removeFromParentNode()
         }
@@ -179,10 +196,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         lastTappedLocation = nil
         
         print("All nodes cleared.")
-        
-       // sceneView.play(nil)
-        sceneView.scene.rootNode.runAction(SCNAction.wait(duration: 0.1))  // Small delay before re-rendering
-        sceneView.setNeedsDisplay()  // Forces SceneKit to update the view
     }
     
     // MARK: - Create Clear Button Programmatically
@@ -222,5 +235,51 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Add button to the view
         self.view.addSubview(showModelButton)
+    }
+    
+    func createShow3SavedModelsButton() {
+        guard listSavedModels().count > 0 else  {
+            return
+        }
+        
+        let showModelButton = UIButton(type: .system)
+        showModelButton.setTitle("List", for: .normal)
+        showModelButton.frame = CGRect(x: 250, y: 40, width: 80, height: 50)
+        showModelButton.addTarget(self, action: #selector(showPrevious3DModelList), for: .touchUpInside)
+        
+        // Customize button appearance (optional)
+        showModelButton.backgroundColor = UIColor.yellow.withAlphaComponent(0.7)
+        showModelButton.setTitleColor(UIColor.black, for: .normal)
+        showModelButton.layer.cornerRadius = 10
+        
+        
+        // Add button to the view
+        self.view.addSubview(showModelButton)
+    }
+    
+    @objc func showPrevious3DModelList() {
+        let savedModels = listSavedModels()
+          let swiftUIView = SavedModelsListView(models: savedModels)
+          let hostingController = UIHostingController(rootView: swiftUIView)
+          
+          present(hostingController, animated: true)
+    }
+    
+    func listSavedModels() -> [URL] {
+        let fileManager = FileManager.default
+        let directoryURL = fileManager.temporaryDirectory  // Or any other directory where you save the files
+
+        do {
+            // Get all files in the directory
+            let allFiles = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil)
+
+            // Filter the files for USDZ files
+            let usdzFiles = allFiles.filter { $0.pathExtension == "usdz" }
+
+            return usdzFiles
+        } catch {
+            print("Failed to list files: \(error)")
+            return []
+        }
     }
 }

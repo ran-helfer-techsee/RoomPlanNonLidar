@@ -44,6 +44,11 @@ class ModelViewController: UIViewController {
         setupCamera(in: sceneView.scene!)
         
         createCloseButton()
+        
+        createSaveButton()
+        
+        let arr = listSavedModels()
+        print(arr)
     }
     
     
@@ -80,10 +85,65 @@ class ModelViewController: UIViewController {
         
         view.addSubview(closeButton)
     }
+    
+    // MARK: - Create Close Button
+    func createSaveButton() {
+        let saveButton = UIButton(type: .system)
+        saveButton.setTitle("Save", for: .normal)
+        saveButton.frame = CGRect(x: 140, y: 40, width: 80, height: 40)
+        saveButton.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        saveButton.setTitleColor(.yellow, for: .normal)
+        saveButton.layer.cornerRadius = 8
+        saveButton.addTarget(self, action: #selector(exportUSDZModel), for: .touchUpInside)
+        
+        view.addSubview(saveButton)
+    }
 
     // MARK: - Dismiss ModelViewController
     @objc func closeViewController() {
         dismiss(animated: true, completion: nil)
     }
 
+    @objc func exportUSDZModel() {
+        let exportScene = SCNScene()
+        
+        // Clone and add all walls to the scene
+        for node in wallNodes {
+            let clonedNode = node.flattenedClone()
+            exportScene.rootNode.addChildNode(clonedNode)
+        }
+        
+        // Create a date formatter and format the current date
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let dateString = dateFormatter.string(from: Date())
+        
+        let fileManager = FileManager.default
+        // Create the file URL with the date string appended to the filename
+        let tempURL = fileManager.temporaryDirectory.appendingPathComponent("RoomModel_\(dateString).usdz")
+        
+        // Export Scene as USDZ
+        exportScene.write(to: tempURL, options: nil, delegate: nil, progressHandler: nil)
+    }
+
+    func listSavedModels() -> [URL] {
+        let fileManager = FileManager.default
+        let directoryURL = fileManager.temporaryDirectory  // Or any other directory where you save the files
+
+        do {
+            // Get all files in the directory
+            let allFiles = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil)
+
+            // Filter the files for USDZ files
+            let usdzFiles = allFiles.filter { $0.pathExtension == "usdz" }
+
+            return usdzFiles
+        } catch {
+            print("Failed to list files: \(error)")
+            return []
+        }
+    }
+
+    
+    
 }
