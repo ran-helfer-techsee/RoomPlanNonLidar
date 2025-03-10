@@ -53,7 +53,6 @@ class ModelViewController: UIViewController {
     
     
     // MARK: - Setup Camera
-    // TODO: - set initial position better
     func setupCamera(in scene: SCNScene) {
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
@@ -110,6 +109,14 @@ class ModelViewController: UIViewController {
         // Clone and add all walls to the scene
         for node in wallNodes {
             let clonedNode = node.flattenedClone()
+            
+            // Copy the geometry and materials of the node
+            if let originalGeometry = node.geometry {
+                let clonedGeometry = originalGeometry.copy() as! SCNGeometry
+                clonedGeometry.materials = originalGeometry.materials // Explicitly set materials
+                clonedNode.geometry = clonedGeometry
+            }
+
             exportScene.rootNode.addChildNode(clonedNode)
         }
         
